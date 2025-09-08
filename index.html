@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To-Do Tasks with Calendar</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --secondary: #60a5fa;
+      --accent: #f97316;
+      --light: #f8fafc;
+      --dark: #1e293b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --gray: #94a3b8;
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      --transition: all 0.3s ease;
+      --high-priority: #ef4444;
+      --medium-priority: #f59e0b;
+      --low-priority: #10b981;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      color: var(--dark);
+    }
+
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+      width: 100%;
+      max-width: 1200px;
+      transition: var(--transition);
+    }
+
+    .app-header {
+      text-align: center;
+      margin-bottom: 25px;
+      position: relative;
+    }
+
+    .app-header h1 {
+      color: var(--primary);
+      font-size: 32px;
+      margin-bottom: 5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .app-header p {
+      color: var(--dark);
+      opacity: 0.7;
+      font-size: 14px;
+    }
+
+    .auth-section, .todo-section {
+      transition: var(--transition);
+    }
+
+    .app-container {
+      display: flex;
+      gap: 30px;
+    }
+
+    .tasks-panel {
+      flex: 1;
+      max-width: 500px;
+    }
+
+    .calendar-panel {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .calendar {
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--card-shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .calendar-header h3 {
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .calendar-nav {
+      display: flex;
+      gap: 10px;
+    }
+
+    .calendar-nav button {
+      background: var(--light);
+      border: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .calendar-nav button:hover {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--dark);
+    }
+
+    .weekday {
+      padding: 5px;
+    }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .day {
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .day:hover {
+      background: var(--light);
+    }
+
+    .day.other-month {
+      color: #ccc;
+    }
+
+    .day.today {
+      background: var(--primary);
+      color: white;
+    }
+
+    .day.has-tasks::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .day.selected {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .day-events {
+      margin-top: 20px;
+    }
+
+    .day-events h4 {
+      margin-bottom: 10px;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .day-events h4 i {
+      color: var(--primary);
+    }
+
+    .event-list {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .event-item {
+      padding: 10px;
+      border-left: 3px solid var(--primary);
+      background: #f8fafc;
+      margin-bottom: 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .event-item.high {
+      border-left-color: var(--high-priority);
+    }
+
+    .event-item.medium {
+      border-left-color: var(--medium-priority);
+    }
+
+    .event-item.low {
+      border-left-color: var(--low-priority);
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+      position: relative;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--secondary);
+    }
+
+    input[type="email"], input[type="password"], input[type="text"], 
+    input[type="date"], textarea, select {
+      width: 100%;
+      padding: 15px 15px 15px 45px;
+      border: 2px solid var(--gray);
+      border-radius: 10px;
+      font-size: 16px;
+      transition: var(--transition);
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      flex: 1;
+    }
+
+    .btn-primary:hover {
+      background-color: #2563eb;
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      color: white;
+      flex: 1;
+    }
+
+    .btn-secondary:hover {
+      background-color: #3b82f6;
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+      transform: translateY(-2px);
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: white;
+    }
+
+    .btn-success:hover {
+      background-color: #059669;
+      transform: translateY(-2px);
+    }
+
+    .btn-accent {
+      background-color: var(--accent);
+      color: white;
+      padding: 10px 15px;
+    }
+
+    .btn-accent:hover {
+      background-color: #ea580c;
+      transform: translateY(-2px);
+    }
+
+    .error {
+      color: var(--danger);
+      font-size: 14px;
+      margin: 10px 0;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .task-stats {
+      display: flex;
+      justify-content: space-between;
+      margin: 15px 0;
+      padding: 15px;
+      background-color: rgba(59, 130, 246, 0.1);
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+
+    .stat-value {
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .task-filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      background: none;
+      border: 2px solid var(--gray);
+      color: var(--dark);
+      padding: 8px 15px;
+      font-size: 14px;
+      border-radius: 20px;
+    }
+
+    .filter-btn.active {
+      background-color: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .task-form {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .form-group {
+      flex: 1;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+
+    ul {
+      list-style: none;
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background-color: white;
+      transition: var(--transition);
+      animation: fadeIn 0.5s ease;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    li:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    li.completed {
+      background-color: rgba(16, 185, 129, 0.1);
+    }
+
+    .task-checkbox {
+      margin-right: 15px;
+      margin-top: 3px;
+    }
+
+    .task-checkbox input {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    .task-content {
+      flex: 1;
+    }
+
+    .task-text {
+      font-size: 16px;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+
+    li.completed .task-text {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+
+    .task-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .task-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .task-priority {
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .priority-high {
+      background-color: var(--high-priority);
+      color: white;
+    }
+
+    .priority-medium {
+      background-color: var(--medium-priority);
+      color: white;
+    }
+
+    .priority-low {
+      background-color: var(--low-priority);
+      color: white;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+    }
+
+    .empty-state i {
+      font-size: 50px;
+      margin-bottom: 15px;
+      color: var(--secondary);
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .user-email {
+      font-weight: 500;
+      color: var(--primary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--secondary);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--primary);
+    }
+
+    /* Mobile-specific styles */
+    @media (max-width: 900px) {
+      .app-container {
+        flex-direction: column;
+      }
+      
+      .tasks-panel {
+        max-width: 100%;
+      }
+      
+      body {
+        padding: 10px;
+        align-items: flex-start;
+        min-height: 100vh;
+        height: auto;
+      }
+      
+      .container {
+        padding: 20px;
+        border-radius: 12px;
+        margin: 10px 0;
+      }
+      
+      .app-header h1 {
+        font-size: 28px;
+      }
+      
+      .btn-group {
+        flex-direction: column;
+      }
+      
+      .task-filters {
+        justify-content: center;
+      }
+      
+      .user-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      
+      .user-email {
+        max-width: 100%;
+      }
+      
+      .task-stats {
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      
+      .stat-item {
+        min-width: 80px;
+      }
+      
+      .form-row {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      input[type="email"], input[type="password"], input[type="text"], 
+      input[type="date"], textarea, select {
+        font-size: 16px;
+      }
+      
+      li {
+        flex-direction: column;
+        gap: 10px;
+      }
+      
+      .task-actions {
+        align-self: flex-end;
+      }
+    }
+
+    /* Animation for task completion */
+    @keyframes taskComplete {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .task-complete-animation {
+      animation: taskComplete 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Auth Section -->
+    <div class="auth-section" id="authSection">
+      <div class="app-header">
+        <h1><i class="fas fa-calendar-days"></i> To-Do Tasks with Calendar</h1>
+        <p>Manage your tasks and visualize due dates on a calendar</p>
+      </div>
+      
+      <div class="input-group">
+        <i class="fas fa-envelope"></i>
+        <input type="email" id="email" placeholder="Enter your email" />
+      </div>
+      
+      <div class="input-group">
+        <i class="fas fa-lock"></i>
+        <input type="password" id="password" placeholder="Enter your password" />
+      </div>
+      
+      <div class="btn-group">
+        <button class="btn-primary" onclick="signUp()">
+          <i class="fas fa-user-plus"></i> Sign Up
+        </button>
+        <button class="btn-secondary" onclick="signIn()">
+          <i class="fas fa-sign-in-alt"></i> Sign In
+        </button>
+      </div>
+      
+      <p class="error" id="error"></p>
+    </div>
+
+    <!-- To-Do Section -->
+    <div class="todo-section" id="todoSection" style="display: none;">
+      <div class="user-info">
+        <div>
+          <h2>My Tasks</h2>
+          <span class="user-email" id="userEmail"></span>
+        </div>
+        <button class="btn-danger" onclick="signOut()" title="Sign Out">
+          <i class="fas fa-sign-out-alt"></i> Sign Out
+        </button>
+      </div>
+      
+      <div class="app-container">
+        <div class="tasks-panel">
+          <div class="task-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="totalTasks">0</span>
+              <span class="stat-label">Total Tasks</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="completedTasks">0</span>
+              <span class="stat-label">Completed</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="pendingTasks">0</span>
+              <span class="stat-label">Pending</span>
+            </div>
+          </div>
+          
+          <div class="task-filters">
+            <button class="filter-btn active" onclick="changeFilter('all')">All Tasks</button>
+            <button class="filter-btn" onclick="changeFilter('active')">Pending</button>
+            <button class="filter-btn" onclick="changeFilter('completed')">Completed</button>
+            <button class="filter-btn" onclick="changeFilter('high')">High Priority</button>
+          </div>
+          
+          <div class="task-form">
+            <h3 style="margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> Add New Task</h3>
+            
+            <div class="form-row">
+              <div class="form-group" style="flex: 2;">
+                <label for="taskInput">Task Description</label>
+                <input type="text" id="taskInput" placeholder="What needs to be done?" />
+              </div>
+              
+              <div class="form-group">
+                <label for="priorityInput">Priority</label>
+                <select id="priorityInput">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dueDateInput">Due Date (optional)</label>
+                <input type="date" id="dueDateInput" />
+              </div>
+              
+              <div class="form-group" style="align-self: flex-end;">
+                <button class="btn-accent" onclick="addTask()">
+                  <i class="fas fa-plus"></i> Add Task
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <p class="error" id="taskError"></p>
+          
+          <ul id="taskList"></ul>
+        </div>
+        
+        <div class="calendar-panel">
+          <div class="calendar">
+            <div class="calendar-header">
+              <h3 id="calendarMonth">April 2023</h3>
+              <div class="calendar-nav">
+                <button id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                <button id="todayMonth">Today</button>
+                <button id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+              </div>
+            </div>
+            
+            <div class="weekdays">
+              <div class="weekday">Sun</div>
+              <div class="weekday">Mon</div>
+              <div class="weekday">Tue</div>
+              <div class="weekday">Wed</div>
+              <div class="weekday">Thu</div>
+              <div class="weekday">Fri</div>
+              <div class="weekday">Sat</div>
+            </div>
+            
+            <div class="days" id="calendarDays">
+              <!-- Calendar days will be generated here -->
+            </div>
+          </div>
+          
+          <div class="day-events">
+            <h4><i class="fas fa-calendar-day"></i> Tasks for <span id="selectedDate">Select a date</span></h4>
+            <div class="event-list" id="dayEvents">
+              <!-- Events for selected day will be shown here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK (Modular) -->
+  <script type="module">
+    // Import Firebase SDK modules
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, push, set, onValue, update, remove, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDe8yzLDj8Y-gzHqS2arkwbD989LwIO4DQ",
+      authDomain: "todoapp-5d6ec.firebaseapp.com",
+      databaseURL: "https://todoapp-5d6ec-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "todoapp-5d6ec",
+      storageBucket: "todoapp-5d6ec.firebasestorage.app",
+      messagingSenderId: "720430702785",
+      appId: "1:720430702785:web:af612a4935cdc731ccb440",
+      measurementId: "G-YG48X4LZ97"
+    };
+
+    // Initialize Firebase
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const database = getDatabase(app);
+      console.log('Firebase initialized successfully');
+
+      let currentFilter = 'all';
+      let allTasks = [];
+      let currentDate = new Date();
+      let selectedDate = null;
+
+      // Calendar functionality
+      function renderCalendar() {
+        const calendarDays = document.getElementById('calendarDays');
+        const calendarMonth = document.getElementById('calendarMonth');
+        calendarDays.innerHTML = '';
+        
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        
+        // Set calendar header
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        calendarMonth.textContent = `${monthNames[month]} ${year}`;
+        
+        // Get first day of month and total days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Get previous month days
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+        
+        // Create previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+          const day = document.createElement('div');
+          day.className = 'day other-month';
+          day.textContent = daysInPrevMonth - i;
+          calendarDays.appendChild(day);
+        }
+        
+        // Create current month days
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        for (let i = 1; i <= daysInMonth; i++) {
+          const day = document.createElement('div');
+          day.className = 'day';
+          day.textContent = i;
+          
+          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+          
+          // Check if this is today
+          const cellDate = new Date(year, month, i);
+          if (cellDate.getTime() === today.getTime()) {
+            day.classList.add('today');
+          }
+          
+          // Check if this date has tasks
+          const hasTasks = allTasks.some(task => task.dueDate === dateStr);
+          if (hasTasks) {
+            day.classList.add('has-tasks');
+          }
+          
+          // Check if this is the selected date
+          if (selectedDate && selectedDate.toDateString() === cellDate.toDateString()) {
+            day.classList.add('selected');
+          }
+          
+          day.addEventListener('click', () => {
+            selectDate(new Date(year, month, i));
+          });
+          
+          calendarDays.appendChild(day);
+        }
+        
+        // Calculate next month days to show
+        const totalCells = 42; // 6 rows x 7 columns
+        const nextMonthDays = totalCells - (firstDay + daysInMonth);
+        
+        // Create next month days
+        for (let i = 1; i <= nextMonthDays; i++) {
+          const day = document.createElement('div');
+          day.className = 'day other-month';
+          day.textContent = i;
+          calendarDays.appendChild(day);
+        }
+      }
+      
+      function selectDate(date) {
+        selectedDate = date;
+        renderCalendar();
+        renderDayEvents();
+      }
+      
+      function renderDayEvents() {
+        const dayEvents = document.getElementById('dayEvents');
+        const selectedDateEl = document.getElementById('selectedDate');
+        
+        if (!selectedDate) {
+          selectedDateEl.textContent = 'Select a date';
+          dayEvents.innerHTML = '<div class="empty-state">Select a date to view tasks</div>';
+          return;
+        }
+        
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth() + 1;
+        const day = selectedDate.getDate();
+        const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        // Format the display date
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        selectedDateEl.textContent = selectedDate.toLocaleDateString('en-US', options);
+        
+        // Filter tasks for selected date
+        const tasksForDate = allTasks.filter(task => task.dueDate === dateStr);
+        
+        if (tasksForDate.length === 0) {
+          dayEvents.innerHTML = '<div class="event-item">No tasks due on this date</div>';
+          return;
+        }
+        
+        dayEvents.innerHTML = '';
+        tasksForDate.forEach(task => {
+          const eventItem = document.createElement('div');
+          eventItem.className = `event-item ${task.priority || 'low'}`;
+          eventItem.innerHTML = `
+            <strong>${task.text}</strong>
+            <div>Priority: ${task.priority || 'low'}</div>
+            <div>Status: ${task.completed ? 'Completed' : 'Pending'}</div>
+          `;
+          dayEvents.appendChild(eventItem);
+        });
+      }
+      
+      // Set up calendar navigation
+      document.getElementById('prevMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+      });
+      
+      document.getElementById('nextMonth').addEventListener('click', () => {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+      });
+      
+      document.getElementById('todayMonth').addEventListener('click', () => {
+        currentDate = new Date();
+        selectDate(new Date());
+        renderCalendar();
+      });
+
+      // Authentication functions
+      window.signUp = async function() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDisplay = document.getElementById('error');
+        if (!email || !password) {
+          errorDisplay.innerText = 'Please enter both email and password.';
+          console.error('Sign-up: Missing email or password');
+          return;
+        }
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          showTodoSection();
+          console.log('Sign-up successful, email:', email);
+        } catch (error) {
+          errorDisplay.innerText = error.message;
+          console.error('Sign-up error:', error);
+        }
+      };
+
+      window.signIn = async function() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const errorDisplay = document.getElementById('error');
+        if (!email || !password) {
+          errorDisplay.innerText = 'Please enter both email and password.';
+          console.error('Sign-in: Missing email or password');
+          return;
+        }
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          showTodoSection();
+          console.log('Sign-in successful, email:', email);
+        } catch (error) {
+          errorDisplay.innerText = error.message;
+          console.error('Sign-in error:', error);
+        }
+      };
+
+      window.signOut = async function() {
+        try {
+          await signOut(auth);
+          document.getElementById('authSection').style.display = 'block';
+          document.getElementById('todoSection').style.display = 'none';
+          document.getElementById('taskList').innerHTML = '';
+          document.getElementById('email').value = '';
+          document.getElementById('password').value = '';
+          document.getElementById('taskError').innerText = '';
+          document.getElementById('error').innerText = '';
+          console.log('Sign-out successful');
+        } catch (error) {
+          document.getElementById('error').innerText = error.message;
+          console.error('Sign-out error:', error);
+        }
+      };
+
+      // Show to-do section
+      function showTodoSection() {
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('todoSection').style.display = 'block';
+        document.getElementById('error').innerText = '';
+        document.getElementById('taskError').innerText = '';
+        document.getElementById('userEmail').textContent = auth.currentUser.email;
+        
+        // Initialize calendar
+        renderCalendar();
+        selectDate(new Date());
+      }
+
+      // Add task
+      window.addTask = async function() {
+        const taskInput = document.getElementById('taskInput');
+        const taskText = taskInput.value.trim();
+        const priorityInput = document.getElementById('priorityInput');
+        const priority = priorityInput.value;
+        const dueDateInput = document.getElementById('dueDateInput');
+        const dueDate = dueDateInput.value;
+        const taskError = document.getElementById('taskError');
+        
+        if (!auth.currentUser) {
+          taskError.innerText = 'Please sign in to add tasks.';
+          console.error('Add Task: No user logged in');
+          return;
+        }
+        if (!taskText) {
+          taskError.innerText = 'Task cannot be empty.';
+          console.error('Add Task: Empty task input');
+          return;
+        }
+        try {
+          const userId = auth.currentUser.uid;
+          const taskRef = ref(database, `tasks/${userId}`);
+          const taskData = {
+            text: taskText,
+            completed: false,
+            priority: priority,
+            timestamp: serverTimestamp()
+          };
+          
+          // Add optional fields if they exist
+          if (dueDate) taskData.dueDate = dueDate;
+          
+          await push(taskRef, taskData);
+          taskInput.value = '';
+          priorityInput.value = 'low';
+          dueDateInput.value = '';
+          taskError.innerText = '';
+          console.log('Task added successfully:', taskText);
+        } catch (error) {
+          taskError.innerText = error.message;
+          console.error('Add Task error:', error);
+        }
+      };
+
+      // Change filter
+      window.changeFilter = function(filter) {
+        currentFilter = filter;
+        
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Re-render tasks with new filter
+        renderTasks(allTasks);
+      };
+
+      // Real-time task listener
+      onAuthStateChanged(auth, user => {
+        console.log('Auth state changed, user:', user ? user.uid : 'No user');
+        if (user) {
+          const userId = user.uid;
+          document.getElementById('userEmail').textContent = user.email;
+          const tasksRef = ref(database, `tasks/${userId}`);
+          onValue(tasksRef, snapshot => {
+            allTasks = [];
+            if (snapshot.exists()) {
+              snapshot.forEach(child => {
+                allTasks.push({
+                  id: child.key,
+                  ...child.val()
+                });
+              });
+            }
+            renderTasks(allTasks);
+            updateTaskStats(allTasks);
+            renderCalendar();
+            renderDayEvents();
+          }, error => {
+            document.getElementById('taskError').innerText = error.message;
+            console.error('Error fetching tasks:', error);
+          });
+        } else {
+          document.getElementById('taskList').innerHTML = '';
+          document.getElementById('taskError').innerText = '';
+        }
+      });
+
+      // Render tasks based on current filter
+      function renderTasks(tasks) {
+        const taskList = document.getElementById('taskList');
+        taskList.innerHTML = '';
+        
+        // Filter tasks based on current filter
+        const filteredTasks = tasks.filter(task => {
+          if (currentFilter === 'active' && task.completed) return false;
+          if (currentFilter === 'completed' && !task.completed) return false;
+          if (currentFilter === 'high' && task.priority !== 'high') return false;
+          return true;
+        });
+        
+        if (filteredTasks.length === 0) {
+          const emptyState = document.createElement('div');
+          emptyState.className = 'empty-state';
+          emptyState.innerHTML = `
+            <i class="fas fa-clipboard-list"></i>
+            <p>No ${currentFilter !== 'all' ? currentFilter : ''} tasks found</p>
+          `;
+          taskList.appendChild(emptyState);
+          return;
+        }
+        
+        // Sort tasks: incomplete first, then by priority
+        filteredTasks.sort((a, b) => {
+          // Completed tasks go to the bottom
+          if (a.completed && !b.completed) return 1;
+          if (!a.completed && b.completed) return -1;
+          
+          // Then by priority (high to low)
+          const priorityOrder = { high: 0, medium: 1, low: 2 };
+          if (a.priority && b.priority) {
+            return priorityOrder[a.priority] - priorityOrder[b.priority];
+          }
+          
+          return 0;
+        });
+        
+        filteredTasks.forEach(task => {
+          const li = document.createElement('li');
+          if (task.completed) {
+            li.classList.add('completed');
+          }
+          
+          // Format the creation date
+          let createdDate = 'Unknown date';
+          if (task.timestamp) {
+            try {
+              const date = new Date(task.timestamp);
+              createdDate = date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              });
+            } catch (e) {
+              console.error('Error formatting date:', e);
+            }
+          }
+          
+          // Format due date if exists
+          let dueDateText = '';
+          if (task.dueDate) {
+            const dueDate = new Date(task.dueDate);
+            dueDateText = dueDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            });
+          }
+          
+          li.innerHTML = `
+            <div class="task-checkbox">
+              <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                onchange="toggleTask('${task.id}', ${task.completed})" />
+            </div>
+            <div class="task-content">
+              <div class="task-text">${task.text}</div>
+              <div class="task-meta">
+                <div class="task-meta-item">
+                  <i class="fas fa-flag"></i>
+                  <span class="task-priority priority-${task.priority || 'low'}">
+                    ${(task.priority || 'low').toUpperCase()}
+                  </span>
+                </div>
+                ${dueDateText ? `
+                  <div class="task-meta-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>Due: ${dueDateText}</span>
+                  </div>
+                ` : ''}
+                <div class="task-meta-item">
+                  <i class="fas fa-plus-circle"></i>
+                  <span>Added: ${createdDate}</span>
+                </div>
+              </div>
+            </div>
+            <div class="task-actions">
+              <button class="btn-danger" onclick="deleteTask('${task.id}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          `;
+          taskList.appendChild(li);
+        });
+      }
+
+      // Update task statistics
+      function updateTaskStats(tasks) {
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter(task => task.completed).length;
+        const pendingTasks = totalTasks - completedTasks;
+        
+        document.getElementById('totalTasks').textContent = totalTasks;
+        document.getElementById('completedTasks').textContent = completedTasks;
+        document.getElementById('pendingTasks').textContent = pendingTasks;
+      }
+
+      // Toggle task completion
+      window.toggleTask = async function(taskId, completed) {
+        if (!auth.currentUser) {
+          document.getElementById('taskError').innerText = 'Please sign in.';
+          console.error('Toggle Task: No user logged in');
+          return;
+        }
+        const userId = auth.currentUser.uid;
+        const taskRef = ref(database, `tasks/${userId}/${taskId}`);
+        try {
+          await update(taskRef, { completed: !completed });
+          
+          // Add animation class to the task item
+          const taskItems = document.querySelectorAll('li');
+          taskItems.forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox && checkbox.onchange.toString().includes(taskId)) {
+              item.classList.add('task-complete-animation');
+              setTimeout(() => {
+                item.classList.remove('task-complete-animation');
+              }, 500);
+            }
+          });
+          
+          console.log('Task toggled:', taskId);
+        } catch (error) {
+          document.getElementById('taskError').innerText = error.message;
+          console.error('Toggle Task error:', error);
+        }
+      };
+
+      // Delete task
+      window.deleteTask = async function(taskId) {
+        if (!auth.currentUser) {
+          document.getElementById('taskError').innerText = 'Please sign in.';
+          console.error('Delete Task: No user logged in');
+          return;
+        }
+        const userId = auth.currentUser.uid;
+        const taskRef = ref(database, `tasks/${userId}/${taskId}`);
+        try {
+          await remove(taskRef);
+          console.log('Task deleted:', taskId);
+        } catch (error) {
+          document.getElementById('taskError').innerText = error.message;
+          console.error('Delete Task error:', error);
+        }
+      };
+    } catch (error) {
+      document.getElementById('error').innerText = 'Failed to initialize Firebase: ' + error.message;
+      console.error('Firebase initialization error:', error);
+    }
+  </script>
+</body>
+</html>
