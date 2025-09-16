@@ -1,136 +1,342 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Task App</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- React + ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-  <!-- Babel for JSX -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <!-- Lucide icons -->
-  <script src="https://unpkg.com/lucide-react/dist/umd/lucide-react.min.js"></script>
-  <style>
-    body { background: #f9fafb; font-family: sans-serif; }
-    .task-card { background: white; border-radius: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .task-card-completed { opacity: 0.7; }
-    .priority-dot-low { width: 8px; height: 8px; border-radius: 50%; background: green; }
-    .priority-dot-medium { width: 8px; height: 8px; border-radius: 50%; background: orange; }
-    .priority-dot-high { width: 8px; height: 8px; border-radius: 50%; background: red; }
-  </style>
-</head>
-<body class="p-6">
-  <h1 class="text-2xl font-bold mb-4">My Task App</h1>
-  <div id="root"></div>
+import React, { useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Calendar, ChevronDown, ChevronRight, Plus, Trash2, Edit2, Check, X } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-  <script type="text/babel">
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
 
-    const { useState } = React;
+export interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  dueDate?: Date;
+  subtasks: Subtask[];
+}
 
-    function Task() {
-      const [task, setTask] = useState({
+interface TaskProps {
+  task: Task;
+  onUpdate: (task: Task) => void;
+  onDelete: (id: string) => void;
+}
+
+export const Task: React.FC<TaskProps> = ({ task, onUpdate, onDelete }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [isAddingSubtask, setIsAddingSubtask] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editPriority, setEditPriority] = useState(task.priority);
+  const [editDueDate, setEditDueDate] = useState<Date | undefined>(task.dueDate);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+  const handleToggleComplete = () => {
+    onUpdate({ ...task, completed: !task.completed });
+  };
+
+  const handleSubtaskToggle = (subtaskId: string) => {
+    const updatedSubtasks = task.subtasks.map(subtask =>
+      subtask.id === subtaskId
+        ? { ...subtask, completed: !subtask.completed }
+        : subtask
+    );
+    onUpdate({ ...task, subtasks: updatedSubtasks });
+  };
+
+  const handleAddSubtask = () => {
+    if (newSubtaskTitle.trim()) {
+      const newSubtask: Subtask = {
         id: Date.now().toString(),
-        title: "My First Task",
-        completed: false,
-        priority: "medium",
-        subtasks: [],
-        page: "inbox"
-      });
-
-      const [isEditing, setIsEditing] = useState(false);
-      const [editTitle, setEditTitle] = useState(task.title);
-
-      const handleToggleComplete = () => {
-        setTask({ ...task, completed: !task.completed });
+        title: newSubtaskTitle.trim(),
+        completed: false
       };
+      onUpdate({ ...task, subtasks: [...task.subtasks, newSubtask] });
+      setNewSubtaskTitle('');
+      setIsAddingSubtask(false);
+    }
+  };
 
-      const handleStartEdit = () => {
-        setIsEditing(true);
-        setEditTitle(task.title);
-      };
+  const handleDeleteSubtask = (subtaskId: string) => {
+    const updatedSubtasks = task.subtasks.filter(subtask => subtask.id !== subtaskId);
+    onUpdate({ ...task, subtasks: updatedSubtasks });
+  };
 
-      const handleSaveEdit = () => {
-        setTask({ ...task, title: editTitle.trim() || task.title });
-        setIsEditing(false);
-      };
+  const handleStartEdit = () => {
+    setIsEditing(true);
+    setEditTitle(task.title);
+    setEditPriority(task.priority);
+    setEditDueDate(task.dueDate);
+  };
 
-      const handleMovePage = (page) => {
-        setTask({ ...task, page });
-      };
+  const handleSaveEdit = () => {
+    onUpdate({
+      ...task,
+      title: editTitle.trim() || task.title,
+      priority: editPriority,
+      dueDate: editDueDate
+    });
+    setIsEditing(false);
+  };
 
-      return (
-        <div className={`task-card p-4 mb-3 ${task.completed ? "task-card-completed" : ""}`}>
-          <div className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={task.completed}
-              onChange={handleToggleComplete}
-              className="mt-1"
-            />
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle(task.title);
+    setEditPriority(task.priority);
+    setEditDueDate(task.dueDate);
+  };
 
-            <div className="flex-1 min-w-0">
-              {isEditing ? (
-                <div className="flex gap-2">
-                  <input
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveEdit();
-                    }}
-                    className="border rounded px-2 py-1 flex-1"
-                  />
-                  <button onClick={handleSaveEdit} className="px-3 py-1 bg-blue-500 text-white rounded">
-                    Save
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className={
-                    task.priority === "high" ? "priority-dot-high" :
-                    task.priority === "medium" ? "priority-dot-medium" :
-                    "priority-dot-low"
-                  } />
-                  <h3 className={`font-medium ${task.completed ? "line-through opacity-60" : ""}`}>
-                    {task.title}
-                  </h3>
-                  <span className="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded">{task.page}</span>
-                </div>
-              )}
+  const completedSubtasks = task.subtasks.filter(subtask => subtask.completed).length;
+  const totalSubtasks = task.subtasks.length;
+
+  const getPriorityDotClass = (priority: string) => {
+    switch (priority) {
+      case 'high': return 'priority-dot-high';
+      case 'medium': return 'priority-dot-medium';
+      case 'low': return 'priority-dot-low';
+      default: return 'priority-dot-low';
+    }
+  };
+
+  return (
+    <div className={cn(
+      'task-card p-4 mb-3',
+      task.completed && 'task-card-completed'
+    )}>
+      <div className="flex items-start gap-3">
+        <Checkbox
+          checked={task.completed}
+          onCheckedChange={handleToggleComplete}
+          className="mt-1"
+        />
+        
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <div className="space-y-3">
+              {/* Edit Title */}
+              <div className="flex items-center gap-2">
+                <div className={getPriorityDotClass(editPriority)} />
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="font-medium input-warm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveEdit();
+                    if (e.key === 'Escape') handleCancelEdit();
+                  }}
+                  autoFocus
+                />
+              </div>
+
+              {/* Edit Priority & Due Date */}
+              <div className="flex items-center gap-2 ml-6">
+                <Select value={editPriority} onValueChange={(value: 'low' | 'medium' | 'high') => setEditPriority(value)}>
+                  <SelectTrigger className="w-24 h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">
+                      <div className="flex items-center gap-2">
+                        <div className="priority-dot-low" />
+                        <span>Low</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <div className="flex items-center gap-2">
+                        <div className="priority-dot-medium" />
+                        <span>Medium</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="high">
+                      <div className="flex items-center gap-2">
+                        <div className="priority-dot-high" />
+                        <span>High</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 text-xs">
+                      <Calendar className="w-3 h-3 mr-1" />
+                      {editDueDate ? format(editDueDate, 'MMM d') : 'Due date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={editDueDate}
+                      onSelect={setEditDueDate}
+                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {editDueDate && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setEditDueDate(undefined)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Save/Cancel Buttons */}
+              <div className="flex items-center gap-2 ml-6">
+                <Button size="sm" className="h-8 btn-primary" onClick={handleSaveEdit}>
+                  <Check className="w-3 h-3 mr-1" />
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" className="h-8" onClick={handleCancelEdit}>
+                  <X className="w-3 h-3 mr-1" />
+                  Cancel
+                </Button>
+              </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button onClick={handleStartEdit} className="text-blue-500">✏️</button>
-              <select
-                value={task.page}
-                onChange={(e) => handleMovePage(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="inbox">Inbox</option>
-                <option value="work">Work</option>
-                <option value="personal">Personal</option>
-                <option value="archive">Archive</option>
-              </select>
-              <button onClick={() => alert("Delete logic here")} className="text-red-500">🗑️</button>
+          ) : (
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={getPriorityDotClass(task.priority)} />
+                <h3 className={cn(
+                  'font-medium text-foreground transition-all duration-200',
+                  task.completed && 'line-through opacity-60'
+                )}>
+                  {task.title}
+                </h3>
+                {task.dueDate && (
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {format(task.dueDate, 'MMM d')}
+                  </Badge>
+                )}
+              </div>
             </div>
+          )}
+
+          {/* Subtasks Section - Always show Add Subtask button */}
+          <div className="mt-3">
+            {totalSubtasks > 0 && (
+              <div className="flex items-center gap-2 mb-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 hover:bg-accent"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                >
+                  {isExpanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {completedSubtasks}/{totalSubtasks} subtasks
+                </span>
+              </div>
+            )}
+
+            {(isExpanded || totalSubtasks === 0) && (
+              <div className="ml-4 space-y-2">
+                {task.subtasks.map(subtask => (
+                  <div key={subtask.id} className="flex items-center gap-2 group">
+                    <Checkbox
+                      checked={subtask.completed}
+                      onCheckedChange={() => handleSubtaskToggle(subtask.id)}
+                      className="w-4 h-4"
+                    />
+                    <span className={cn(
+                      'text-sm flex-1',
+                      subtask.completed && 'line-through opacity-60'
+                    )}>
+                      {subtask.title}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => handleDeleteSubtask(subtask.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+
+                {isAddingSubtask ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4" />
+                    <Input
+                      value={newSubtaskTitle}
+                      onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                      placeholder="Add subtask..."
+                      className="h-8 text-sm input-warm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddSubtask();
+                        if (e.key === 'Escape') {
+                          setIsAddingSubtask(false);
+                          setNewSubtaskTitle('');
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      className="h-8 btn-primary"
+                      onClick={handleAddSubtask}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-full justify-start text-muted-foreground hover:text-foreground hover:bg-accent"
+                    onClick={() => setIsAddingSubtask(true)}
+                  >
+                    <Plus className="w-3 h-3 mr-2" />
+                    Add subtask
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      );
-    }
 
-    function App() {
-      return (
-        <div>
-          <Task />
+        {/* Task Actions */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent"
+            onClick={handleStartEdit}
+          >
+            <Edit2 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => onDelete(task.id)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
-
-  </script>
-</body>
-</html>
+      </div>
+    </div>
+  );
+};
